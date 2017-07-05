@@ -1,4 +1,5 @@
 var img = $('#image');
+var dot = $('#dot');
 var pos_label = $('#pos-label');
 
 var download_btn = $('#download-btn');
@@ -8,15 +9,12 @@ var upload_fc = $('#upload-fc');
 var no_ball_btn = $('#no-ball-btn');
 
 var progress_bar = $('#progress-bar');
+var label_scroll = $('#label-scroll');
 
 var current_row = 1; // 1-based
 var n_complete = 0;
 
-var info = {
-    'w': 1920,
-    'h': 1080,
-    'n': 100
-};
+var info = null;
 
 function get_xy(e) {
     var cx = e.pageX - img.offset().left;
@@ -50,6 +48,11 @@ function get_labels() {
     return [names, xs, ys];
 }
 
+function update_scrollbar() {
+    var elem = $('#label-table tbody tr:nth-child(' + current_row + ')');
+    label_scroll.scrollTop(elem.height() * current_row - 200);
+}
+
 function update_label(x, y) {
     var elem = $('#label-table tbody tr:nth-child(' + current_row + ')');
     var labeled = elem.children('td:nth-child(2)').text() != '';
@@ -60,17 +63,65 @@ function update_label(x, y) {
     update_label_color(current_row, current_row + 1);
     current_row += 1;
 
+    update_scrollbar();
+
     if (!labeled) {
         n_complete += 1;
         var percent = Math.round(n_complete / info['n'] * 100);
         progress_bar.css('width', '' + percent + '%');
         progress_bar.html('' + percent + '%');
-    }        
+    }
 }
 
 function update_label_color(prev, now) {
     $('#label-table tbody tr:nth-child(' + prev + ')').css('color', 'black');
     $('#label-table tbody tr:nth-child(' + now + ')').css('color', 'cornflowerblue');
+}
+
+function update_image() {
+    var name = $('#label-table tbody tr:nth-child(' + current_row + ') td:nth-child(1)').text();
+    var path = '/local/@' + info['folder'] + '/' + name;
+    img.attr('src', path);
+
+    var x = -1, y = -1;
+    var prev = $('#label-table tbody tr:nth-child(' + (current_row) + ')');
+    var str_x = prev.children('td').eq(1).text();
+    var str_y = prev.children('td').eq(2).text();
+
+    if (str_x != '' && str_y != '') {
+        var sw = img.width();
+        var sh = img.height();
+        x = Math.round(parseFloat(str_x) * sw / info['w']);
+        y = Math.round(parseFloat(str_y) * sh / info['h']);
+    }
+    else {
+        x = -1000;
+        y = -1000;
+    }
+
+    dot.css('margin-left', x);
+    dot.css('margin-top', y);
+}
+
+function check_done() {
+    if (n_complete >= info['n']) {
+        setTimeout(function () {
+            alert("You're done. \nPress the download button to get the labels.");
+        }, 300);
+        return true;
+    }
+    return false;
+}
+
+function no_ball() {
+    if (current_row > info['n']) {
+        return;
+    }
+    update_image();
+    update_label(-1, -1);
+    if (check_done()) {
+        return;
+    }
 }
 
 function init_img() {
@@ -79,10 +130,38 @@ function init_img() {
         x = xy[0];
         y = xy[1];
 
+        if (current_row > info['n']) {
+            return;
+        }
+
+        update_image();
         update_label(x, y);
+        if (check_done()) {
+            return;
+        }
+    });
+
+    dot.mouseup(function (e) {
+        xy = get_xy(e);
+        x = xy[0];
+        y = xy[1];
+
+        update_image();
+        update_label(x, y);
+        if (check_done()) {
+            return;
+        }
     });
 
     img.mousemove(function (e) {
+        xy = get_xy(e);
+        x = xy[0];
+        y = xy[1];
+
+        pos_label.attr('placeholder', '(' + x + ',' + y + ')');
+    });
+
+    dot.mousemove(function (e) {
         xy = get_xy(e);
         x = xy[0];
         y = xy[1];
@@ -94,8 +173,8 @@ function init_img() {
 function init_btn() {
     download_a.click(function (e) {
         var labels = get_labels();
-        console.log(labels);
         var data = JSON.stringify({
+            'folder': info['folder'],
             'names': labels[0],
             'xs': labels[1],
             'ys': labels[2]
@@ -129,11 +208,11 @@ function init_btn() {
                 var xs = data['xs'];
                 var ys = data['ys'];
                 for (var idx in names) {
-                    var template = 
+                    var template =
                         '<tr>' +
-                        '<td>' + names[idx] + '</td>' + 
-                        '<td>' + xs[idx] + '</td>' + 
-                        '<td>' + ys[idx] + '</td>' + 
+                        '<td>' + names[idx] + '</td>' +
+                        '<td>' + xs[idx] + '</td>' +
+                        '<td>' + ys[idx] + '</td>' +
                         '</tr>';
                     tbody.append(template);
                 }
@@ -146,20 +225,20 @@ function init_btn() {
         upload_fc[0].click();
     });
 
-    no_ball_btn.click(function(e) {
-        update_label(-1, -1);
+    no_ball_btn.click(function (e) {
+        no_ball();
     });
 }
 
 function init_table() {
     var rows = $('#label-table tbody tr').get();
 
-    $.each(rows, function(idx, row) {
+    $.each(rows, function (idx, row) {
         var elem = $(row);
-        elem.click(function() {
+        elem.click(function () {
             update_label_color(current_row, idx + 1);
             current_row = idx + 1;
-            // switch image
+            update_image();
         });
     });
 
@@ -167,11 +246,41 @@ function init_table() {
 }
 
 $(function () {
+    $.post('/info', null, function (res) {
+        info = JSON.parse(res);
+        current_row = 1;
+        update_image();
+    });
+
     init_img();
     init_btn();
     init_table();
 
-    key('n', function(e) {
-        update_label(-1, -1);
+    key('n', function (e) {
+        no_ball();
+    });
+    key('down, right', function (e) {
+        if (current_row == info['n']) {
+            return;
+        }
+        update_image();
+        update_label_color(current_row, current_row + 1);
+        current_row += 1;
+        update_scrollbar();
+        if (check_done()) {
+            return;
+        }
+    });
+    key('up, left', function (e) {
+        if (current_row == 1) {
+            return;
+        }
+        update_image();
+        update_label_color(current_row, current_row - 1);
+        current_row -= 1;
+        update_scrollbar();
+        if (check_done()) {
+            return;
+        }
     });
 });

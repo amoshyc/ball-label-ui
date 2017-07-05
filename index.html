@@ -41,6 +41,18 @@
             width: 150px;
             text-align: center;
         }
+
+        #dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 5px;
+            background-color: #00ff00;
+            position: absolute;
+            transform: translateX(-50%) translateY(-50%);
+            margin-left: -1000px;
+            margin-top: -1000px;
+            cursor: crosshair;
+        }
     </style>
 
     <!-- Bootstrap CSS -->
@@ -57,7 +69,8 @@
         <div class="row mt-3">
 
             <div id="image-container" class="col-lg-9 d-flex justify-content-left pl-4 pt-0">
-                <img id="image" src="test.jpg" ondragstart="return false;" ondrop="return false;" />
+                <img id="image" src="" ondragstart="return false;" ondrop="return false;" />
+                <div id="dot"></div>
             </div>
 
             <div id="label-container" class="col-lg-3 d-flex">
@@ -71,16 +84,13 @@
                             </tr>
                         </thead>
                         <tbody>
+                            {% for name in names %}
                             <tr>
-                                <td>1234567.jpg</td>
+                                <td>{{ name }}</td>
                                 <td></td>
                                 <td></td>
                             </tr>
-                            <tr>
-                                <td>ddddd.jpg</td>
-                                <td></td>
-                                <td></td>
-                            </tr>
+                            {% end %}
                         </tbody>
                     </table>
                 </div>
@@ -128,10 +138,10 @@
         crossorigin="anonymous"></script>
 
     <!--keymaster.js-->
-    <script src="keymaster.js"></script>
+    <script src="static/keymaster.js"></script>
 
     <!--my script-->
-    <script src="script.js"></script>
+    <script src="static/script.js"></script>
 
 </body>
 
