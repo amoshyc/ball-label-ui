@@ -207,15 +207,45 @@ function init_btn() {
                 var names = data['names'];
                 var xs = data['xs'];
                 var ys = data['ys'];
+                n_complete = 0 // new
                 for (var idx in names) {
-                    var template =
-                        '<tr>' +
-                        '<td>' + names[idx] + '</td>' +
-                        '<td>' + xs[idx] + '</td>' +
-                        '<td>' + ys[idx] + '</td>' +
-                        '</tr>';
-                    tbody.append(template);
+                    // var template =
+                    //     '<tr>' +
+                    //     '<td>' + names[idx] + '</td>' +
+                    //     '<td>' + xs[idx] + '</td>' +
+                    //     '<td>' + ys[idx] + '</td>' +
+                    //     '</tr>';
+                    // tbody.append(template);
+
+                    if (xs[idx] != null) {// new
+                        n_complete += 1;
+                        var template =
+                            '<tr>' +
+                            '<td>' + names[idx] + '</td>' +
+                            '<td>' + xs[idx] + '</td>' +
+                            '<td>' + ys[idx] + '</td>' +
+                            '</tr>';
+                        tbody.append(template);  
+                    }
+                    else{
+                        var template =
+                            '<tr>' +
+                            '<td>' + names[idx] + '</td>' +
+                            '<td>' + '</td>' +
+                            '<td>' + '</td>' +
+                            '</tr>';
+                        tbody.append(template);  
+
+                    }
+
                 }
+
+                init_table(); // new
+                current_row = 1; // new
+                var percent = Math.round(n_complete / info['n'] * 100); // new
+                progress_bar.css('width', '' + percent + '%'); // new
+                progress_bar.html('' + percent + '%'); // new
+
             }
             reader.readAsDataURL(files[0]);
         }
